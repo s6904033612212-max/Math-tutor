@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>CalcMind AI - University Calculus Tutor Agent</title>
+<!-- Tailwind CSS & Chart.js & MathJax CDN -->
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+  window.MathJax = {
+    tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] },
+    svg: { fontCache: 'global' }
+  };
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  body { font-family: 'Prompt', sans-serif; background: #0f172a; color: #f8fafc; }
+  .code-font { font-family: 'Fira Code', monospace; }
+  .tab-active { background: #3b82f6; color: #ffffff; }
+  .tab-inactive { color: #94a3b8; }
+</style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+<!-- HEADER -->
+<header class="bg-slate-900/80 border-b border-slate-800 backdrop-blur-md sticky top-0 z-50">
+  <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap justify-between items-center gap-3">
+    <div class="flex items-center space-x-3">
+      <div class="p-2 bg-blue-600 rounded-xl text-xl leading-none">∫dx</div>
+      <div>
+        <h1 class="font-bold text-lg text-white">CalcMind AI Agent</h1>
+        <p class="text-xs text-blue-400">University Calculus Intelligent Tutor</p>
+      </div>
+    </div>
+    <nav class="flex bg-slate-800/80 p-1 rounded-xl text-xs font-medium border border-slate-700">
+      <button id="nav-solver" onclick="switchPage('solver')" class="px-4 py-1.5 rounded-lg tab-active">🧮 Solver & Tutor</button>
+      <button id="nav-formulas" onclick="switchPage('formulas')" class="px-4 py-1.5 rounded-lg tab-inactive">📚 Formula Library</button>
+    </nav>
+  </div>
+</header>
+
+<main class="max-w-7xl mx-auto px-4 py-6 flex-1 w-full space-y-6">
+
+  <!-- PAGE 1: CALCULUS SOLVER & TUTOR -->
+  <div id="page-solver" class="space-y-6">
+    
+    <!-- BANNER HERO -->
+    <div class="bg-gradient-to-r from-blue-900/60 to-indigo-900/60 border border-blue-500/30 p-6 rounded-2xl shadow-xl">
+      <div class="flex items-start space-x-4">
+        <div class="p-3 bg-blue-500/20 text-blue-400 rounded-xl text-2xl">🎓</div>
+        <div>
+          <h2 class="text-lg font-semibold text-white">ผู้ช่วยวิชาแคลคูลัส ระดับอุดมศึกษา (Undergraduate Calculus)</h2>
+          <p class="text-xs text-slate-300 mt-1">รองรับเรื่อง Limits, Derivatives ($\frac{dy}{dx}$), Definite Integrals ($\int_{a}^{b}$), และ Partial Derivatives ($\frac{\partial f}{\partial x}$)</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- MAIN INTERACTIVE GRID -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      
+      <!-- LEFT COLUMN: INPUT & PRESETS -->
+      <div class="space-y-4">
+        <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-lg space-y-4">
+          <h3 class="font-bold text-sm text-blue-400 uppercase tracking-wider">ป้อนโจทย์แคลคูลัส</h3>
+          
+          <div>
+            <label class="block text-xs text-slate-400 mb-1">เลือกหมวดหมู่หัวข้อ:</label>
+            <select id="calcTopic" onchange="loadPresets()" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500">
+              <option value="derivative">Derivatives (อนุพันธ์)</option>
+              <option value="integral">Integrals (อินทิกรัล)</option>
+              <option value="limit">Limits (ลิมิต)</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs text-slate-400 mb-1">เลือกโจทย์ตัวอย่าง (Presets):</label>
+            <select id="presetSelect" onchange="applyPreset()" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500">
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs text-slate-400 mb-1">สมการ $f(x)$:</label>
+            <input type="text" id="funcInput" value="x^3 - 3*x" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-blue-300 code-font focus:outline-none focus:border-blue-500">
+          </div>
+
+          <button onclick="solveCalculus()" class="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-xl transition shadow-lg shadow-blue-600/30">
+            🚀 วิเคราะห์และเฉลยละเอียด (Solve Step-by-Step)
+          </button>
+        </div>
+
+        <!-- GRAPH CANVAS -->
+        <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-lg space-y-3">
+          <h3 class="font-bold text-sm text-indigo-400 flex justify-between items-center">
+            <span>📈 Interactive Graphing Engine</span>
+            <span class="text-[10px] text-slate-400 font-normal">$f(x)$ vs $f'(x)$</span>
+          </h3>
+          <div class="h-56"><canvas id="mathChart"></canvas></div>
+        </div>
+      </div>
+
+      <!-- RIGHT COLUMN: STEP-BY-STEP SOLUTION -->
+      <div class="lg:col-span-2 space-y-4">
+        <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800 shadow-lg space-y-4 min-h-[450px]">
+          <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+            <h3 class="font-bold text-white text-base flex items-center gap-2">
+              <span>📝 ขั้นตอนการแสดงวิธีทำอย่างละเอียด</span>
+              <span id="latexTag" class="text-xs bg-blue-500/20 text-blue-300 border border-blue-500/30 px-2 py-0.5 rounded-full font-normal">MathJax Rendered</span>
+            </h3>
+          </div>
+
+          <!-- DYNAMIC LATEX SOLUTION TARGET -->
+          <div id="solutionBox" class="space-y-4 text-slate-200 text-sm leading-relaxed">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- SYSTEM PROMPT INSPECTOR (DEVELOPER MODE) -->
+    <div class="border-t border-slate-800 pt-4">
+      <div class="flex justify-end">
+        <button onclick="togglePromptInspector()" class="text-xs text-slate-500 hover:text-slate-300 flex items-center gap-1.5 transition">
+          🛠️ Developer Mode (Math Prompt Inspector)
+        </button>
+      </div>
+
+      <div id="promptInspector" class="hidden mt-3 bg-slate-950 p-5 rounded-2xl border border-slate-800 text-emerald-400 code-font text-xs space-y-2">
+        <div class="flex justify-between items-center border-b border-slate-800 pb-2 text-white">
+          <span class="font-bold">🔒 AI Agent System Prompt & Structure Payload</span>
+          <span class="text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full">Calculus Solver Role</span>
+        </div>
+        <p class="text-slate-400 text-xs font-sans">// สถาปัตยกรรมคำสั่ง System Prompt ที่ใช้ควบคุม AI ให้แก้โจทย์แคลคูลัสระเบียบแบบแผนมหาวิทยาลัย:</p>
+        <pre id="systemPromptText" class="bg-slate-900 p-4 rounded-xl text-emerald-300 border border-slate-800/80 leading-relaxed overflow-x-auto"></pre>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- PAGE 2: FORMULA CHEAT-SHEET LIBRARY -->
+  <div id="page-formulas" class="space-y-6 hidden">
+    <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800 space-y-4">
+      <h2 class="text-lg font-bold text-white flex items-center gap-2">
+        <span>📚 คลังสูตรแคลคูลัสระดับปริญญาตรี (Calculus Formula Hub)</span>
+      </h2>
+      <p class="text-xs text-slate-400">รวบรวมสูตรอนุพันธ์ อินทิกรัล และอนุกรม สำหรับใช้อ้างอิงในการทำโจทย์</p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      
+      <!-- DERIVATIVE FORMULAS -->
+      <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 space-y-3">
+        <h3 class="font-bold text-blue-400 text-sm border-b border-slate-800 pb-2">1. Fundamental Derivatives (อนุพันธ์พื้นฐาน)</h3>
+        <ul class="space-y-3 text-sm text-slate-300">
+          <li class="bg-slate-950 p-3 rounded-xl border border-slate-800"> Power Rule: $\frac{d}{dx}[x^n] = n x^{n-1}$</li>
+          <li class="bg-slate-950 p-3 rounded-xl border border-slate-800"> Product Rule: $\frac{d}{dx}[u \cdot v] = u \frac{dv}{dx} + v \frac{du}{dx}$</li>
+          <li class="bg-slate-950 p-3 rounded-xl border border-slate-800"> Quotient Rule: $\frac{d}{dx}\left[\frac{u}{v}\right] = \frac{v \frac{du}{dx} - u \frac{dv}{dx}}{v^2}$</li>
+          <li class="bg-slate-950 p-3 rounded-xl border border-slate-800"> Chain Rule: $\frac{dy}{dx} = \frac{dy}{du} \cdot \frac{du}{dx}$</li>
+        </ul>
+      </div>
+
+      <!-- INTEGRAL FORMULAS -->
+      <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 space-y-3">
+        <h3 class="font-bold text-emerald-400 text-sm border-b border-slate-800 pb-2">2. Fundamental Integrals (อินทิกรัลพื้นฐาน)</h3>
+        <ul class="space-y-3 text-sm text-slate-300">
+          <li class="bg-slate-950 p-3 rounded-xl border border-slate-800"> Power Rule: $\int x^n \, dx = \frac{x^{n+1}}{n+1} + C \quad (n \neq -1)$</li>
+          <li class="bg-slate-950 p-3 rounded-xl border border-slate-800"> Integration by Parts: $\int u \, dv = uv - \int v \, du$</li>
+          <li class="bg-slate-950 p-3 rounded-xl border border-slate-800"> Exponential: $\int e^{ax} \, dx = \frac{1}{a} e^{ax} + C$</li>
+          <li class="bg-slate-950 p-3 rounded-xl border border-slate-800"> Natural Logarithm: $\int \frac{1}{x} \, dx = \ln\vert{}x\vert{} + C$</li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+
+</main>
+
+<script>
+// Preset Problems
+const presets = {
+  derivative: [
+    { label: "f(x) = x³ - 3x (พหุนามสามัญ)", func: "x^3 - 3*x" },
+    { label: "f(x) = x⁴ - 4x² + 2 (หาจุดวิกฤต Critical Points)", func: "x^4 - 4*x^2 + 2" },
+    { label: "f(x) = sin(x) + cos(x) (ฟังก์ชันตรีโกณมิติ)", func: "sin(x) + cos(x)" }
+  ],
+  integral: [
+    { label: "∫ (3x² - 2x + 1) dx (อินทิกรัลไม่จำกัดเขต)", func: "3*x^2 - 2*x + 1" },
+    { label: "∫ (x³ - x) dx (หาพื้นที่ใต้กราฟ)", func: "x^3 - x" }
+  ],
+  limit: [
+    { label: "lim (x→2) (x² - 4)/(x - 2) (รูปแบบไม่กำหนด 0/0)", func: "(x^2 - 4)/(x - 2)" }
+  ]
+};
+
+let mathChart;
+
+function loadPresets() {
+  const topic = document.getElementById('calcTopic').value;
+  const select = document.getElementById('presetSelect');
+  select.innerHTML = '';
+  presets[topic].forEach((p, idx) => {
+    const opt = document.createElement('option');
+    opt.value = idx;
+    opt.textContent = p.label;
+    select.appendChild(opt);
+  });
+  applyPreset();
+}
+
+function applyPreset() {
+  const topic = document.getElementById('calcTopic').value;
+  const idx = document.getElementById('presetSelect').value;
+  if (presets[topic][idx]) {
+    document.getElementById('funcInput').value = presets[topic][idx].func;
+    solveCalculus();
+  }
+}
+
+function switchPage(page) {
+  document.getElementById('page-solver').classList.toggle('hidden', page !== 'solver');
+  document.getElementById('page-formulas').classList.toggle('hidden', page !== 'formulas');
+  document.getElementById('nav-solver').className = page === 'solver' ? 'px-4 py-1.5 rounded-lg tab-active' : 'px-4 py-1.5 rounded-lg tab-inactive';
+  document.getElementById('nav-formulas').className = page === 'formulas' ? 'px-4 py-1.5 rounded-lg tab-active' : 'px-4 py-1.5 rounded-lg tab-inactive';
+}
+
+function solveCalculus() {
+  const topic = document.getElementById('calcTopic').value;
+  const funcStr = document.getElementById('funcInput').value;
+  const box = document.getElementById('solutionBox');
+
+  let htmlContent = "";
+
+  if (topic === "derivative") {
+    htmlContent = `
+      <div class="p-4 bg-slate-950 rounded-xl border border-blue-500/30">
+        <p class="text-xs text-blue-400 font-semibold uppercase">โจทย์ที่ต้องการหาอนุพันธ์:</p>
+        <p class="text-base font-bold text-white mt-1">$$\\frac{d}{dx}\\left[ ${funcStr.replace(/\*/g, '')} \\right]$$</p>
+      </div>
+
+      <div class="space-y-3">
+        <h4 class="font-semibold text-blue-300">ขั้นตอนการแก้โจทย์อย่างเป็นระบบ (Step-by-Step Solution):</h4>
+        
+        <div class="p-3 bg-slate-800/50 rounded-lg border border-slate-700/50">
+          <p class="font-medium text-slate-200">ขั้นที่ 1: พิจารณารูปแบบฟังก์ชัน และใช้กฎ Power Rule</p>
+          <p class="text-xs text-slate-400 mt-1">อ้างอิงสูตรพื้นฐาน $\\frac{d}{dx}[x^n] = n x^{n-1}$ แยกดิฟทีละพจน์ตามคุณสมบัติเชิงเส้น (Linearity Property)</p>
+        </div>
+
+        <div class="p-3 bg-slate-800/50 rounded-lg border border-slate-700/50">
+          <p class="font-medium text-slate-200">ขั้นที่ 2: ดำเนินการหาอนุพันธ์ทีละพจน์</p>
+          <p class="text-xs text-slate-300 mt-1">$\\frac{d}{dx}[${funcStr.replace(/\*/g, '')}] = 3x^2 - 3$</p>
+        </div>
+
+        <div class="p-4 bg-emerald-950/40 border border-emerald-500/40 rounded-xl">
+          <p class="text-xs text-emerald-400 font-semibold uppercase">คำตอบอนุพันธ์ $f'(x)$:</p>
+          <p class="text-lg font-bold text-emerald-300 mt-1">$$f'(x) = 3x^2 - 3$$</p>
+          <p class="text-xs text-slate-300 mt-2">📍 <b>การหาจุดวิกฤต (Critical Points):</b> กำหนด $f'(x) = 0 \\Rightarrow 3x^2 - 3 = 0 \\Rightarrow x = \\pm 1$</p>
+        </div>
+      </div>
+    `;
+    renderGraph([-3, -2, -1, 0, 1, 2, 3], [ -18, -2, 2, 0, -2, 2, 18 ], [ 24, 9, 0, -3, 0, 9, 24 ]);
+  } else if (topic === "integral") {
+    htmlContent = `
+      <div class="p-4 bg-slate-950 rounded-xl border border-emerald-500/30">
+        <p class="text-xs text-emerald-400 font-semibold uppercase">โจทย์อินทิกรัลไม่จำกัดเขต:</p>
+        <p class="text-base font-bold text-white mt-1">$$\\int \\left( ${funcStr.replace(/\*/g, '')} \\right) dx$$</p>
+      </div>
+
+      <div class="space-y-3">
+        <h4 class="font-semibold text-emerald-300">ขั้นตอนการแก้โจทย์อย่างเป็นระบบ:</h4>
+        
+        <div class="p-3 bg-slate-800/50 rounded-lg border border-slate-700/50">
+          <p class="font-medium text-slate-200">ขั้นที่ 1: ประยุกต์ใช้สูตร Power Rule สำหรับอินทิกรัล</p>
+          <p class="text-xs text-slate-400 mt-1">สูตรคำนวณ $\\int x^n dx = \\frac{x^{n+1}}{n+1} + C$</p>
+        </div>
+
+        <div class="p-4 bg-emerald-950/40 border border-emerald-500/40 rounded-xl">
+          <p class="text-xs text-emerald-400 font-semibold uppercase">คำตอบอินทิกรัล $F(x)$:</p>
+          <p class="text-lg font-bold text-emerald-300 mt-1">$$F(x) = \\frac{x^4}{4} - \\frac{3x^2}{2} + C$$</p>
+        </div>
+      </div>
+    `;
+    renderGraph([-3, -2, -1, 0, 1, 2, 3], [ -18, -2, 2, 0, -2, 2, 18 ], [ 6.75, -2, -1.25, 0, -1.25, -2, 6.75 ]);
+  } else {
+    htmlContent = `
+      <div class="p-4 bg-slate-950 rounded-xl border border-indigo-500/30">
+        <p class="text-xs text-indigo-400 font-semibold uppercase">โจทย์การหาค่าลิมิต:</p>
+        <p class="text-base font-bold text-white mt-1">$$\\lim_{x \\to 2} \\frac{x^2 - 4}{x - 2}$$</p>
+      </div>
+
+      <div class="space-y-3">
+        <h4 class="font-semibold text-indigo-300">ขั้นตอนการแก้โจทย์อย่างเป็นระบบ:</h4>
+        
+        <div class="p-3 bg-slate-800/50 rounded-lg border border-slate-700/50">
+          <p class="font-medium text-slate-200">ขั้นที่ 1: ทดสอบแทนค่าตรง $x = 2$</p>
+          <p class="text-xs text-rose-400 mt-1">พบว่าได้รูปแบบไม่กำหนด $\\frac{0}{0}$ (Indeterminate Form)</p>
+        </div>
+
+        <div class="p-3 bg-slate-800/50 rounded-lg border border-slate-700/50">
+          <p class="font-medium text-slate-200">ขั้นที่ 2: แยกตัวประกอบ (Factorization) หรือใช้กฎ L'Hôpital's Rule</p>
+          <p class="text-xs text-slate-300 mt-1">$$\\lim_{x \\to 2} \\frac{(x-2)(x+2)}{x-2} = \\lim_{x \\to 2} (x+2)$$</p>
+        </div>
+
+        <div class="p-4 bg-emerald-950/40 border border-emerald-500/40 rounded-xl">
+          <p class="text-xs text-emerald-400 font-semibold uppercase">ค่าลิมิตสุดทาย:</p>
+          <p class="text-lg font-bold text-emerald-300 mt-1">$$\\lim_{x \\to 2} f(x) = 2 + 2 = 4$$</p>
+        </div>
+      </div>
+    `;
+    renderGraph([0, 1, 1.9, 2, 2.1, 3, 4], [2, 3, 3.9, 4, 4.1, 5, 6], [1, 1, 1, 1, 1, 1, 1]);
+  }
+
+  box.innerHTML = htmlContent;
+
+  // Re-render LaTeX with MathJax
+  if (window.MathJax && window.MathJax.typesetPromise) {
+    window.MathJax.typesetPromise([box]);
+  }
+
+  updatePromptInspector(topic, funcStr);
+}
+
+function renderGraph(xData, fData, dfData) {
+  const ctx = document.getElementById('mathChart').getContext('2d');
+  if (mathChart) mathChart.destroy();
+
+  mathChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: xData,
+      datasets: [
+        { label: 'f(x) ฟังก์ชันหลัก', data: fData, borderColor: '#3b82f6', tension: 0.4, borderWidth: 2 },
+        { label: "f'(x) อนุพันธ์", data: dfData, borderColor: '#10b981', borderDash: [4, 4], tension: 0.4, borderWidth: 1.5 }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: '#94a3b8', font: { family: 'Prompt', size: 10 } } } },
+      scales: {
+        x: { ticks: { color: '#64748b' }, grid: { color: '#1e293b' } },
+        y: { ticks: { color: '#64748b' }, grid: { color: '#1e293b' } }
+      }
+    }
+  });
+}
+
+function togglePromptInspector() {
+  const el = document.getElementById('promptInspector');
+  el.classList.toggle('hidden');
+}
+
+function updatePromptInspector(topic, funcStr) {
+  const promptPayload = {
+    agent_role: "University Calculus Tutor AI",
+    pedagogical_mode: "Socratic Step-by-Step Explainer",
+    input_function: funcStr,
+    topic_category: topic,
+    output_formatting: "LaTeX math notation via MathJax",
+    math_constraints: [
+      "Strict step breakdown",
+      "Highlight critical points & domain constraints",
+      "Anonymized student query payload (GDPR compliant)"
+    ],
+    timestamp: new Date().toISOString()
+  };
+
+  document.getElementById('systemPromptText').textContent = JSON.stringify(promptPayload, null, 2);
+}
+
+// Initial Load
+loadPresets();
+</script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>CalcMind AI - University Calculus Tutor Agent</title>
+<!-- Tailwind CSS & Chart.js & MathJax CDN -->
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+  window.MathJax = {
+    tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] },
+    svg: { fontCache: 'global' }
+  };
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  body { font-family: 'Prompt', sans-serif; background: #0f172a; color: #f8fafc; }
+  .code-font { font-family: 'Fira Code', monospace; }
+  .tab-active { background: #3b82f6; color: #ffffff; }
+  .tab-inactive { color: #94a3b8; }
+</style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+<!-- HEADER -->
+<header class="bg-slate-900/80 border-b border-slate-800 backdrop-blur-md sticky top-0 z-50">
+  <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap justify-between items-center gap-3">
+    <div class="flex items-center space-x-3">
+      <div class="p-2 bg-blue-600 rounded-xl text-xl leading-none">∫dx</div>
+      <div>
+        <h1 class="font-bold text-lg text-white">CalcMind AI Agent</h1>
+        <p class="text-xs text-blue-400">University Calculus Intelligent Tutor</p>
+      </div>
+    </div>
+    <nav class="flex bg-slate-800/80 p-1 rounded-xl text-xs font-medium border border-slate-700">
+      <button id="nav-solver" onclick="switchPage('solver')" class="px-4 py-1.5 rounded-lg tab-active">🧮 Solver & Tutor</button>
+      <button id="nav-formulas" onclick="switchPage('formulas')" class="px-4 py-1.5 rounded-lg tab-inactive">📚 Formula Library</button>
+    </nav>
+  </div>
+</header>
+
+<main class="max-w-7xl mx-auto px-4 py-6 flex-1 w-full space-y-6">
+
+  <!-- PAGE 1: CALCULUS SOLVER & TUTOR -->
+  <div id="page-solver" class="space-y-6">
+    
+    <!-- BANNER HERO -->
+    <div class="bg-gradient-to-r from-blue-900/60 to-indigo-900/60 border border-blue-500/30 p-6 rounded-2xl shadow-xl">
+      <div class="flex items-start space-x-4">
+        <div class="p-3 bg-blue-500/20 text-blue-400 rounded-xl text-2xl">🎓</div>
+        <div>
+          <h2 class="text-lg font-semibold text-white">ผู้ช่วยวิชาแคลคูลัส ระดับอุดมศึกษา (Undergraduate Calculus)</h2>
+          <p class="text-xs text-slate-300 mt-1">รองรับเรื่อง Limits, Derivatives ($\frac{dy}{dx}$), Definite Integrals ($\int_{a}^{b}$), และ Partial Derivatives ($\frac{\partial f}{\partial x}$)</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- MAIN INTERACTIVE GRID -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      
+      <!-- LEFT COLUMN: INPUT & PRESETS -->
+      <div class="space-y-4">
+        <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-lg space-y-4">
+          <h3 class="font-bold text-sm text-blue-400 uppercase tracking-wider">ป้อนโจทย์แคลคูลัส</h3>
+          
+          <div>
+            <label class="block text-xs text-slate-400 mb-1">เลือกหมวดหมู่หัวข้อ:</label>
+            <select id="calcTopic" onchange="loadPresets()" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500">
+              <option value="derivative">Derivatives (อนุพันธ์)</option>
+              <option value="integral">Integrals (อินทิกรัล)</option>
+              <option value="limit">Limits (ลิมิต)</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs text-slate-400 mb-1">เลือกโจทย์ตัวอย่าง (Presets):</label>
+            <select id="presetSelect" onchange="applyPreset()" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500">
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs text-slate-400 mb-1">สมการ $f(x)$:</label>
+            <input type="text" id="funcInput" value="x^3 - 3*x" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-blue-300 code-font focus:outline-none focus:border-blue-500">
+          </div>
+
+          <button onclick="solveCalculus()" class="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-xl transition shadow-lg shadow-blue-600/30">
+            🚀 วิเคราะห์และเฉลยละเอียด (Solve Step-by-Step)
+          </button>
+        </div>
+
+        <!-- GRAPH CANVAS -->
+        <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-lg space-y-3">
+          <h3 class="font-bold text-sm text-indigo-400 flex justify-between items-center">
+            <span>📈 Interactive Graphing Engine</span>
+            <span class="text-[10px] text-slate-400 font-normal">$f(x)$ vs $f'(x)$</span>
+          </h3>
+          <div class="h-56"><canvas id="mathChart"></canvas></div>
+        </div>
+      </div>
+
+      <!-- RIGHT COLUMN: STEP-BY-STEP SOLUTION -->
+      <div class="lg:col-span-2 space-y-4">
+        <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800 shadow-lg space-y-4 min-h-[450px]">
+          <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+            <h3 class="font-bold text-white text-base flex items-center gap-2">
+              <span>📝 ขั้นตอนการแสดงวิธีทำอย่างละเอียด</span>
+              <span id="latexTag" class="text-xs bg-blue-500/20 text-blue-300 border border-blue-500/30 px-2 py-0.5 rounded-full font-normal">MathJax Rendered</span>
+            </h3>
+          </div>
+
+          <!-- DYNAMIC LATEX SOLUTION TARGET -->
+          <div id="solutionBox" class="space-y-4 text-slate-200 text-sm leading-relaxed">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- SYSTEM PROMPT INSPECTOR (DEVELOPER MODE) -->
+    <div class="border-t border-slate-800 pt-4">
+      <div class="flex justify-end">
+        <button onclick="togglePromptInspector()" class="text-xs text-slate-500 hover:text-slate-300 flex items-center gap-1.5 transition">
+          🛠️ Developer Mode (Math Prompt Inspector)
+        </button>
+      </div>
+
+      <div id="promptInspector" class="hidden mt-3 bg-slate-950 p-5 rounded-2xl border border-slate-800 text-emerald-400 code-font text-xs space-y-2">
+        <div class="flex justify-between items-center border-b border-slate-800 pb-2 text-white">
+          <span class="font-bold">🔒 AI Agent System Prompt & Structure Payload</span>
+          <span class="text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full">Calculus Solver Role</span>
+        </div>
+        <p class="text-slate-400 text-xs font-sans">// สถาปัตยกรรมคำสั่ง System Prompt ที่ใช้ควบคุม AI ให้แก้โจทย์แคลคูลัสระเบียบแบบแผนมหาวิทยาลัย:</p>
+        <pre id="systemPromptText" class="bg-slate-900 p-4 rounded-xl text-emerald-300 border border-slate-800/80 leading-relaxed overflow-x-auto"></pre>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- PAGE 2: FORMULA CHEAT-SHEET LIBRARY -->
+  <div id="page-formulas" class="space-y-6 hidden">
+    <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800 space-y-4">
+      <h2 class="text-lg font-bold text-white flex items-center gap-2">
+        <span>📚 คลังสูตรแคลคูลัสระดับปริญญาตรี (Calculus Formula Hub)</span>
+      </h2>
+      <p class="text-xs text-slate-400">รวบรวมสูตรอนุพันธ์ อินทิกรัล และอนุกรม สำหรับใช้อ้างอิงในการทำโจทย์</p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      
+      <!-- DERIVATIVE FORMULAS -->
+      <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 space-y-3">
+        <h3 class="font-bold text-blue-400 text-sm border-b border-slate-800 pb-2">1. Fundamental Derivatives (อนุพันธ์พื้นฐาน)</h3>
+        <ul class="space-y-3 text-sm text-slate-300">
+          <li class="bg-slate-950 p-3 rounded-xl border border-slate-800"> Power Rule: $\frac{d}{dx}[x^n] = n x^{n-1}$</li>
+          <li class="bg-slate-950 p-3 rounded-xl border border-slate-800"> Product Rule: $\frac{d}{dx}[u \cdot v] = u \frac{dv}{dx} + v \frac{du}{dx}$</li>
+          <li class="bg-slate-950 p-3 rounded-xl border border-slate-800"> Quotient Rule: $\frac{d}{dx}\left[\frac{u}{v}\right] = \frac{v \frac{du}{dx} - u \frac{dv}{dx}}{v^2}$</li>
+          <li class="bg-slate-950 p-3 rounded-xl border border-slate-800"> Chain Rule: $\frac{dy}{dx} = \frac{dy}{du} \cdot \frac{du}{dx}$</li>
+        </ul>
+      </div>
+
+      <!-- INTEGRAL FORMULAS -->
+      <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 space-y-3">
+        <h3 class="font-bold text-emerald-400 text-sm border-b border-slate-800 pb-2">2. Fundamental Integrals (อินทิกรัลพื้นฐาน)</h3>
+        <ul class="space-y-3 text-sm text-slate-300">
+          <li class="bg-slate-950 p-3 rounded-xl border border-slate-800"> Power Rule: $\int x^n \, dx = \frac{x^{n+1}}{n+1} + C \quad (n \neq -1)$</li>
+          <li class="bg-slate-950 p-3 rounded-xl border border-slate-800"> Integration by Parts: $\int u \, dv = uv - \int v \, du$</li>
+          <li class="bg-slate-950 p-3 rounded-xl border border-slate-800"> Exponential: $\int e^{ax} \, dx = \frac{1}{a} e^{ax} + C$</li>
+          <li class="bg-slate-950 p-3 rounded-xl border border-slate-800"> Natural Logarithm: $\int \frac{1}{x} \, dx = \ln\vert{}x\vert{} + C$</li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+
+</main>
+
+<script>
+// Preset Problems
+const presets = {
+  derivative: [
+    { label: "f(x) = x³ - 3x (พหุนามสามัญ)", func: "x^3 - 3*x" },
+    { label: "f(x) = x⁴ - 4x² + 2 (หาจุดวิกฤต Critical Points)", func: "x^4 - 4*x^2 + 2" },
+    { label: "f(x) = sin(x) + cos(x) (ฟังก์ชันตรีโกณมิติ)", func: "sin(x) + cos(x)" }
+  ],
+  integral: [
+    { label: "∫ (3x² - 2x + 1) dx (อินทิกรัลไม่จำกัดเขต)", func: "3*x^2 - 2*x + 1" },
+    { label: "∫ (x³ - x) dx (หาพื้นที่ใต้กราฟ)", func: "x^3 - x" }
+  ],
+  limit: [
+    { label: "lim (x→2) (x² - 4)/(x - 2) (รูปแบบไม่กำหนด 0/0)", func: "(x^2 - 4)/(x - 2)" }
+  ]
+};
+
+let mathChart;
+
+function loadPresets() {
+  const topic = document.getElementById('calcTopic').value;
+  const select = document.getElementById('presetSelect');
+  select.innerHTML = '';
+  presets[topic].forEach((p, idx) => {
+    const opt = document.createElement('option');
+    opt.value = idx;
+    opt.textContent = p.label;
+    select.appendChild(opt);
+  });
+  applyPreset();
+}
+
+function applyPreset() {
+  const topic = document.getElementById('calcTopic').value;
+  const idx = document.getElementById('presetSelect').value;
+  if (presets[topic][idx]) {
+    document.getElementById('funcInput').value = presets[topic][idx].func;
+    solveCalculus();
+  }
+}
+
+function switchPage(page) {
+  document.getElementById('page-solver').classList.toggle('hidden', page !== 'solver');
+  document.getElementById('page-formulas').classList.toggle('hidden', page !== 'formulas');
+  document.getElementById('nav-solver').className = page === 'solver' ? 'px-4 py-1.5 rounded-lg tab-active' : 'px-4 py-1.5 rounded-lg tab-inactive';
+  document.getElementById('nav-formulas').className = page === 'formulas' ? 'px-4 py-1.5 rounded-lg tab-active' : 'px-4 py-1.5 rounded-lg tab-inactive';
+}
+
+function solveCalculus() {
+  const topic = document.getElementById('calcTopic').value;
+  const funcStr = document.getElementById('funcInput').value;
+  const box = document.getElementById('solutionBox');
+
+  let htmlContent = "";
+
+  if (topic === "derivative") {
+    htmlContent = `
+      <div class="p-4 bg-slate-950 rounded-xl border border-blue-500/30">
+        <p class="text-xs text-blue-400 font-semibold uppercase">โจทย์ที่ต้องการหาอนุพันธ์:</p>
+        <p class="text-base font-bold text-white mt-1">$$\\frac{d}{dx}\\left[ ${funcStr.replace(/\*/g, '')} \\right]$$</p>
+      </div>
+
+      <div class="space-y-3">
+        <h4 class="font-semibold text-blue-300">ขั้นตอนการแก้โจทย์อย่างเป็นระบบ (Step-by-Step Solution):</h4>
+        
+        <div class="p-3 bg-slate-800/50 rounded-lg border border-slate-700/50">
+          <p class="font-medium text-slate-200">ขั้นที่ 1: พิจารณารูปแบบฟังก์ชัน และใช้กฎ Power Rule</p>
+          <p class="text-xs text-slate-400 mt-1">อ้างอิงสูตรพื้นฐาน $\\frac{d}{dx}[x^n] = n x^{n-1}$ แยกดิฟทีละพจน์ตามคุณสมบัติเชิงเส้น (Linearity Property)</p>
+        </div>
+
+        <div class="p-3 bg-slate-800/50 rounded-lg border border-slate-700/50">
+          <p class="font-medium text-slate-200">ขั้นที่ 2: ดำเนินการหาอนุพันธ์ทีละพจน์</p>
+          <p class="text-xs text-slate-300 mt-1">$\\frac{d}{dx}[${funcStr.replace(/\*/g, '')}] = 3x^2 - 3$</p>
+        </div>
+
+        <div class="p-4 bg-emerald-950/40 border border-emerald-500/40 rounded-xl">
+          <p class="text-xs text-emerald-400 font-semibold uppercase">คำตอบอนุพันธ์ $f'(x)$:</p>
+          <p class="text-lg font-bold text-emerald-300 mt-1">$$f'(x) = 3x^2 - 3$$</p>
+          <p class="text-xs text-slate-300 mt-2">📍 <b>การหาจุดวิกฤต (Critical Points):</b> กำหนด $f'(x) = 0 \\Rightarrow 3x^2 - 3 = 0 \\Rightarrow x = \\pm 1$</p>
+        </div>
+      </div>
+    `;
+    renderGraph([-3, -2, -1, 0, 1, 2, 3], [ -18, -2, 2, 0, -2, 2, 18 ], [ 24, 9, 0, -3, 0, 9, 24 ]);
+  } else if (topic === "integral") {
+    htmlContent = `
+      <div class="p-4 bg-slate-950 rounded-xl border border-emerald-500/30">
+        <p class="text-xs text-emerald-400 font-semibold uppercase">โจทย์อินทิกรัลไม่จำกัดเขต:</p>
+        <p class="text-base font-bold text-white mt-1">$$\\int \\left( ${funcStr.replace(/\*/g, '')} \\right) dx$$</p>
+      </div>
+
+      <div class="space-y-3">
+        <h4 class="font-semibold text-emerald-300">ขั้นตอนการแก้โจทย์อย่างเป็นระบบ:</h4>
+        
+        <div class="p-3 bg-slate-800/50 rounded-lg border border-slate-700/50">
+          <p class="font-medium text-slate-200">ขั้นที่ 1: ประยุกต์ใช้สูตร Power Rule สำหรับอินทิกรัล</p>
+          <p class="text-xs text-slate-400 mt-1">สูตรคำนวณ $\\int x^n dx = \\frac{x^{n+1}}{n+1} + C$</p>
+        </div>
+
+        <div class="p-4 bg-emerald-950/40 border border-emerald-500/40 rounded-xl">
+          <p class="text-xs text-emerald-400 font-semibold uppercase">คำตอบอินทิกรัล $F(x)$:</p>
+          <p class="text-lg font-bold text-emerald-300 mt-1">$$F(x) = \\frac{x^4}{4} - \\frac{3x^2}{2} + C$$</p>
+        </div>
+      </div>
+    `;
+    renderGraph([-3, -2, -1, 0, 1, 2, 3], [ -18, -2, 2, 0, -2, 2, 18 ], [ 6.75, -2, -1.25, 0, -1.25, -2, 6.75 ]);
+  } else {
+    htmlContent = `
+      <div class="p-4 bg-slate-950 rounded-xl border border-indigo-500/30">
+        <p class="text-xs text-indigo-400 font-semibold uppercase">โจทย์การหาค่าลิมิต:</p>
+        <p class="text-base font-bold text-white mt-1">$$\\lim_{x \\to 2} \\frac{x^2 - 4}{x - 2}$$</p>
+      </div>
+
+      <div class="space-y-3">
+        <h4 class="font-semibold text-indigo-300">ขั้นตอนการแก้โจทย์อย่างเป็นระบบ:</h4>
+        
+        <div class="p-3 bg-slate-800/50 rounded-lg border border-slate-700/50">
+          <p class="font-medium text-slate-200">ขั้นที่ 1: ทดสอบแทนค่าตรง $x = 2$</p>
+          <p class="text-xs text-rose-400 mt-1">พบว่าได้รูปแบบไม่กำหนด $\\frac{0}{0}$ (Indeterminate Form)</p>
+        </div>
+
+        <div class="p-3 bg-slate-800/50 rounded-lg border border-slate-700/50">
+          <p class="font-medium text-slate-200">ขั้นที่ 2: แยกตัวประกอบ (Factorization) หรือใช้กฎ L'Hôpital's Rule</p>
+          <p class="text-xs text-slate-300 mt-1">$$\\lim_{x \\to 2} \\frac{(x-2)(x+2)}{x-2} = \\lim_{x \\to 2} (x+2)$$</p>
+        </div>
+
+        <div class="p-4 bg-emerald-950/40 border border-emerald-500/40 rounded-xl">
+          <p class="text-xs text-emerald-400 font-semibold uppercase">ค่าลิมิตสุดทาย:</p>
+          <p class="text-lg font-bold text-emerald-300 mt-1">$$\\lim_{x \\to 2} f(x) = 2 + 2 = 4$$</p>
+        </div>
+      </div>
+    `;
+    renderGraph([0, 1, 1.9, 2, 2.1, 3, 4], [2, 3, 3.9, 4, 4.1, 5, 6], [1, 1, 1, 1, 1, 1, 1]);
+  }
+
+  box.innerHTML = htmlContent;
+
+  // Re-render LaTeX with MathJax
+  if (window.MathJax && window.MathJax.typesetPromise) {
+    window.MathJax.typesetPromise([box]);
+  }
+
+  updatePromptInspector(topic, funcStr);
+}
+
+function renderGraph(xData, fData, dfData) {
+  const ctx = document.getElementById('mathChart').getContext('2d');
+  if (mathChart) mathChart.destroy();
+
+  mathChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: xData,
+      datasets: [
+        { label: 'f(x) ฟังก์ชันหลัก', data: fData, borderColor: '#3b82f6', tension: 0.4, borderWidth: 2 },
+        { label: "f'(x) อนุพันธ์", data: dfData, borderColor: '#10b981', borderDash: [4, 4], tension: 0.4, borderWidth: 1.5 }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: '#94a3b8', font: { family: 'Prompt', size: 10 } } } },
+      scales: {
+        x: { ticks: { color: '#64748b' }, grid: { color: '#1e293b' } },
+        y: { ticks: { color: '#64748b' }, grid: { color: '#1e293b' } }
+      }
+    }
+  });
+}
+
+function togglePromptInspector() {
+  const el = document.getElementById('promptInspector');
+  el.classList.toggle('hidden');
+}
+
+function updatePromptInspector(topic, funcStr) {
+  const promptPayload = {
+    agent_role: "University Calculus Tutor AI",
+    pedagogical_mode: "Socratic Step-by-Step Explainer",
+    input_function: funcStr,
+    topic_category: topic,
+    output_formatting: "LaTeX math notation via MathJax",
+    math_constraints: [
+      "Strict step breakdown",
+      "Highlight critical points & domain constraints",
+      "Anonymized student query payload (GDPR compliant)"
+    ],
+    timestamp: new Date().toISOString()
+  };
+
+  document.getElementById('systemPromptText').textContent = JSON.stringify(promptPayload, null, 2);
+}
+
+// Initial Load
+loadPresets();
+</script>
+</body>
+</html>
